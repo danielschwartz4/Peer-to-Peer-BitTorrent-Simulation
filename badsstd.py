@@ -53,9 +53,11 @@ class BadsStd(Peer):
         peers.sort(key=lambda p: p.id)
         # request all available pieces from all peers!
         # (up to self.max_requests from each)
+        # !! Build pri
         for peer in peers:
             av_set = set(peer.available_pieces)
             isect = av_set.intersection(np_set)
+            # !! Sort isect by priority
             n = min(self.max_requests, len(isect))
             # More symmetry breaking -- ask for random pieces.
             # This would be the place to try fancier piece-requesting strategies
@@ -97,7 +99,8 @@ class BadsStd(Peer):
             logging.debug("Still here: uploading to a random peer")
             # change my internal state for no reason
             self.dummy_state["cake"] = "pie"
-
+            # !! Choose prioritized request instead
+            # !! Choose 1 random
             request = random.choice(requests)
             chosen = [request.requester_id]
             # Evenly "split" my upload bandwidth among the one chosen requester
