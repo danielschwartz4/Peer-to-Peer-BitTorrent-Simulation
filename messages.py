@@ -36,7 +36,6 @@ class Download:
             self.from_id, self.to_id, self.piece, self.blocks)
 
 
-
             
 class PeerInfo:
     """
