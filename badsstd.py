@@ -12,6 +12,7 @@ import logging
 from messages import Upload, Request
 from util import even_split
 from peer import Peer
+from badsutil import *
 
 class BadsStd(Peer):
     def post_init(self):
@@ -50,26 +51,32 @@ class BadsStd(Peer):
         
         # Sort peers by id.  This is probably not a useful sort, but other 
         # sorts might be useful
-        peers.sort(key=lambda p: p.id)
+        # peers.sort(key=lambda p: p.id)
         # request all available pieces from all peers!
         # (up to self.max_requests from each)
         # !! Build pri
-        for peer in peers:
-            av_set = set(peer.available_pieces)
-            isect = av_set.intersection(np_set)
-            # !! Sort isect by priority
-            n = min(self.max_requests, len(isect))
-            # More symmetry breaking -- ask for random pieces.
-            # This would be the place to try fancier piece-requesting strategies
-            # to avoid getting the same thing from multiple peers at a time.
-            for piece_id in random.sample(isect, n):
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
-                start_block = self.pieces[piece_id]
-                r = Request(self.id, peer.id, piece_id, start_block)
-                requests.append(r)
 
+        # for peer inB peers:
+        #     av_set = set(peer.available_pieces)
+        #     isect = av_set.intersection(np_set)
+        #     # !! Sort isect by priority
+        #     n = min(self.max_requests, len(isect))
+        #     # More symmetry breaking -- ask for random pieces.
+        #     # This would be the place to try fancier piece-requesting strategies
+        #     # to avoid getting the same thing from multiple peers at a time.
+        #     for piece_id in random.sample(isect, n):
+        #         # aha! The peer has this piece! Request it.
+        #         # which part of the piece do we need next?
+        #         # (must get the next-needed blocks in order)
+        #         start_block = self.pieces[piece_id]
+        #         r = Request(self.id, peer.id, piece_id, start_block)
+        #         requests.append(r)
+        block_rarity = blockRarity(peers, np_set)
+        n = min(self.max_requests, len(block_rarity))
+        for piece_id in random.sample(block_rarity, n):
+            start_block = self.pieces[piece_id]
+            r = Request(self.id, peer.id, piece_id, start_block)
+            requests.append(r)
         return requests
 
     def uploads(self, requests, peers, history):
