@@ -104,10 +104,9 @@ class BadsStd(Peer):
         max_upload = 4  # max num of peers to upload to at a time
         requester_ids = list(set([r.requester_id for r in requests]))
         number_of_seeds = self.conf.agent_class_names.count("Seed")
-        print(requester_ids)
-        print(peers)
+        
         n = min(max_upload, len(requests))
-        recipocateUploads(peers, requests, requester_ids, number_of_seeds)
+        #recipocateUploads(peers, requests, requester_ids, number_of_seeds)
         if n == 0:
             logging.debug("No one wants my pieces!")
             chosen = []
