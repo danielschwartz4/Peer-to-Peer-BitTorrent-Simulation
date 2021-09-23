@@ -56,7 +56,6 @@ class Dummy(Peer):
         for peer in peers:
             av_set = set(peer.available_pieces)
             isect = av_set.intersection(np_set)
-            print(isect)
             n = min(self.max_requests, len(isect))
             # More symmetry breaking -- ask for random pieces.
             # This would be the place to try fancier piece-requesting strategies
@@ -68,7 +67,6 @@ class Dummy(Peer):
                 start_block = self.pieces[piece_id]
                 r = Request(self.id, peer.id, piece_id, start_block)
                 requests.append(r)
-
         return requests
 
     def uploads(self, requests, peers, history):

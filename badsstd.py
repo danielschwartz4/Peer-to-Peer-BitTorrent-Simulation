@@ -73,12 +73,14 @@ class BadsStd(Peer):
         #         requests.append(r)
         block_rarity = blockRarity(peers, np_set)
         n = min(self.max_requests, len(block_rarity))
-        for piece_info in random.sample(block_rarity, n):
+        for piece_info_index in range(n):
+            piece_info = block_rarity[piece_info_index]
             piece_id = piece_info[0]
             start_block = self.pieces[piece_id]
-            peer = piece_info[2][0]
-            r = Request(self.id, peer.id, piece_id, start_block)
-            requests.append(r)
+            for peer in piece_info[2]:
+                r = Request(self.id, peer.id, piece_id, start_block)
+                requests.append(r)
+        print(requests)
         return requests
 
     def uploads(self, requests, peers, history):
@@ -91,7 +93,6 @@ class BadsStd(Peer):
 
         In each round, this will be called after requests().
         """
-
         round = history.current_round()
         logging.debug("%s again.  It's round %d." % (
             self.id, round))
@@ -100,7 +101,14 @@ class BadsStd(Peer):
         # has a list of Download objects for each Download to this peer in
         # the previous round.
 
-        if len(requests) == 0:
+        max_upload = 4  # max num of peers to upload to at a time
+        requester_ids = list(set([r.requester_id for r in requests]))
+        number_of_seeds = self.conf.agent_class_names.count("Seed")
+        print(requester_ids)
+        print(peers)
+        n = min(max_upload, len(requests))
+        recipocateUploads(peers, requests, requester_ids, number_of_seeds)
+        if n == 0:
             logging.debug("No one wants my pieces!")
             chosen = []
             bws = []
@@ -110,6 +118,7 @@ class BadsStd(Peer):
             self.dummy_state["cake"] = "pie"
             # !! Choose prioritized request instead
             # !! Choose 1 random
+
             request = random.choice(requests)
             chosen = [request.requester_id]
             # Evenly "split" my upload bandwidth among the one chosen requester
