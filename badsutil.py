@@ -15,7 +15,6 @@ def blockRarity(peers, np_set):
 
 	values = []
 	for key, value in d.items():
-		print(key, value)
 		values.append([key, value[0][0], value[1]])
 	sorted(values, key=lambda value: value[1])
 	return values

@@ -73,8 +73,10 @@ class BadsStd(Peer):
         #         requests.append(r)
         block_rarity = blockRarity(peers, np_set)
         n = min(self.max_requests, len(block_rarity))
-        for piece_id in random.sample(block_rarity, n):
+        for piece_info in random.sample(block_rarity, n):
+            piece_id = piece_info[0]
             start_block = self.pieces[piece_id]
+            peer = piece_info[2][0]
             r = Request(self.id, peer.id, piece_id, start_block)
             requests.append(r)
         return requests
