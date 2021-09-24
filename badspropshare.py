@@ -70,30 +70,32 @@ class BadsPropshare(Peer):
         
         n = min(max_upload, len(requests))
         isect = set()
+        bw_given = 0
+        chosen = []
         if round > 0:
             for d in history.downloads[-1]:
-                self.prev_uploaders[d.from_id] = [d.blocks, 0]
+                self.prev_uploaders[d.from_id] = d.blocks
             uploaders = set(self.prev_uploaders.keys())
             isect = list(set(requester_ids).intersection(uploaders))
 
             if isect != []:
                 total_blocks = 0
                 for requester_id in isect:
-                    total_blocks += self.prev_uploaders[requester_id][0]
-                for i in self.prev_uploaders.keys():
-                    self.prev_uploaders[i][1] = (self.prev_uploaders[i][0] / total_blocks) * self.pcp * self.up_bw
+                    total_blocks += self.prev_uploaders[requester_id]
+                for requester_id in isect:
+                    new_bw = ((self.prev_uploaders[requester_id] / total_blocks) * self.pcp * self.up_bw)//1
+                    bw_given += new_bw
+                    requester_ids.remove(requester_id)
+                    chosen.append(Upload(self.id, requester_id, new_bw))
 
-        chosen = []
-        for requester_id in isect:
-            requester_ids.remove(requester_id)
-            chosen.append(Upload(self.id, requester_id, self.prev_uploaders[requester_id][1]))
 
-        # if len(chosen) < n - 1:
-        #     for i in range(n - 1 - len(chosen)):
-        #     if notTopRequesters != []:
-        #         randomUnchock = random.choice(notTopRequesters)
-        #         notTopRequesters.remove(randomUnchock)
-        #         chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//max_upload)))
+        if len(chosen) < n - 1:
+            for i in range(n - 1 - len(chosen)):
+                if requester_ids != []:
+                    randomUnchock = random.choice(requester_ids)
+                    requester_ids.remove(randomUnchock)
+                    bw_given += (self.up_bw - bw_given)/(n - len(chosen))
+                    chosen.append(Upload(self.id, requester_ids, (self.up_bw - bw_given)/(n - len(chosen)) ))
 
         if round % 3 == 0 or self.needNewRandom:
             if requester_ids != []:
@@ -102,9 +104,8 @@ class BadsPropshare(Peer):
             else:
                 self.needNewRandom = True
             
-        chosen.append(Upload(self.id, self.random_peer, int(self.up_bw*self.ucp)))
-        print(self.up_bw)
-        print(chosen)
+        chosen.append(Upload(self.id, self.random_peer, int(self.up_bw - bw_given)))
+
         return chosen
 
 
