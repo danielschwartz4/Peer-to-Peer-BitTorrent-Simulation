@@ -77,7 +77,8 @@ class BadsTyrant(Peer):
 
         for peer in peers:
             av_set = set(peer.available_pieces)
-            isect = av_set.intersection(np_set)
+            isect = list(av_set.intersection(np_set))
+            random.shuffle(isect)
             n = min(self.max_requests, len(isect))
             piece_rarity = pieceRarity(peers, isect)
             # More symmetry breaking -- ask for random pieces.
@@ -112,6 +113,7 @@ class BadsTyrant(Peer):
                 self.dij[peer.id] = [5, 0]
         if round > 0:
             uploaders = set()
+            print(history.downloads)
             for d in history.downloads[round-1]:
                 uploaders.add(d.from_id)
                 self.dij[d.from_id][0] = d.blocks #/4

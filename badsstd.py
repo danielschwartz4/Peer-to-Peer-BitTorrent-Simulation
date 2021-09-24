@@ -65,7 +65,7 @@ class BadsStd(Peer):
         #         requests.append(r)
 
         # return requests
-
+        random.shuffle(peers)
         for peer in peers:
             av_set = set(peer.available_pieces)
             isect = list(av_set.intersection(np_set))
@@ -109,7 +109,6 @@ class BadsStd(Peer):
             chosen = []
             # !! Choose prioritized request instead
             topRequesters, notTopRequesters = recipocateUploads(history, requester_ids)
-            print('TOP', topRequesters, 'NOT', notTopRequesters)
             for topRequest in topRequesters[:n-1]:
                 notTopRequesters.remove(topRequest[0])
                 chosen.append(Upload(self.id, topRequest[0], int(self.up_bw//max_upload)))

@@ -29,22 +29,20 @@ def pieceRarity(peers, isect):
 	# Using Dictionary comprehension
 	d = {}
 	for peer in peers:
-		isect = list(isect)
-		random.shuffle(isect)
 		for piece in isect:
-			if piece in d:
-				d[piece][0][0] += 1
-				d[piece][1].append(peer)
-			else:
-				d[piece] = [[1], [peer]]
+			if piece in peer.available_pieces:
+				if piece in d:
+					d[piece] += 1
+				else:
+					d[piece] = 1
 
 	values = []
 	for key, value in d.items():
 		#Value in dict of the form [[int], [Peers]]
-		values.append([key, value[0][0], value[1]])
+		values.append([key, value])
 		#Value in array values of the form [piece_id, int, [Peers]]
 	values.sort(key = lambda x: x[1])
-	# print("ERIC: ", values)
+	#print("ERIC: ", values)
 	return values
 
 
