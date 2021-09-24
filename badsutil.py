@@ -4,10 +4,11 @@ import copy
 
 def blockRarity(peers, np_set):
 	d = {}
-	
+	random.shuffle(peers)
 	for peer in peers:
 		av_set = set(peer.available_pieces)
-		isect = av_set.intersection(np_set)
+		isect = list(av_set.intersection(np_set))
+		random.shuffle(isect)
 		for piece in isect:
 			if piece in d:
 				d[piece][0][0] += 1
@@ -21,25 +22,46 @@ def blockRarity(peers, np_set):
 		values.append([key, value[0][0], value[1]])
 		#Value in array values of the form [piece_id, int, [Peers]]
 	values.sort(key = lambda x: x[1])
-	print("ERIC: ", values)
+	# print("ERIC: ", values)
 	return values
 
-def recipocateUploads(peers, requests, requester_ids, number_of_seeds, slots_available, history):
-	copyRequester_ids = copy.deepcopy(requester_ids)
+def pieceRarity(peers, isect):
+	# Using Dictionary comprehension
+	d = {}
+	for peer in peers:
+		isect = list(isect)
+		random.shuffle(isect)
+		for piece in isect:
+			if piece in d:
+				d[piece][0][0] += 1
+				d[piece][1].append(peer)
+			else:
+				d[piece] = [[1], [peer]]
+
+	values = []
+	for key, value in d.items():
+		#Value in dict of the form [[int], [Peers]]
+		values.append([key, value[0][0], value[1]])
+		#Value in array values of the form [piece_id, int, [Peers]]
+	values.sort(key = lambda x: x[1])
+	# print("ERIC: ", values)
+	return values
+
+
+def recipocateUploads(history, copyRequester_ids ):
 	peersBW = {}
-	for i in range(2):
-		for download in history.downloads[i]:
+	for i in range(1,3):
+		for download in history.downloads[-i]:
 			if download.from_id in copyRequester_ids:
-				copyRequester_ids.remove(download.from_id)
-			if not "Seed" in download.from_id:
 				if download.from_id in peersBW:
 					peersBW[download.from_id] += download.blocks
 				else:
 					peersBW[download.from_id] = download.blocks 
+
 	sortPeersBW = []
 	for key, value in peersBW.items():
 		sortPeersBW.append([key, value])
-	sortPeersBW.sort(key = lambda x: x[1])
+	sortPeersBW.sort(key = lambda x: x[1], reverse=True)
 	return sortPeersBW, copyRequester_ids
 	
 

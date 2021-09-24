@@ -20,6 +20,7 @@ class BadsStd(Peer):
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
         self.random_peer = -1
+        self.needNewRandom = True
     
     def requests(self, peers, history):
         """
@@ -50,17 +51,30 @@ class BadsStd(Peer):
         # Symmetry breaking is good...
         random.shuffle(needed_pieces)
         
-        block_rarity = blockRarity(peers, np_set)
-        n = min(self.max_requests, len(block_rarity))
-        for piece_info_index in range(n):
-            piece_info = block_rarity[piece_info_index]
-            piece_id = piece_info[0]
-            start_block = self.pieces[piece_id]
-            #print(piece_info[2])
-            random.shuffle(piece_info[2])
-            print(piece_info[2])
-            for peer in piece_info[2]:
-                r = Request(self.id, peer.id, piece_id, start_block)
+        #print(peers)
+        # block_rarity = blockRarity(peers, np_set)
+        # n = min(self.max_requests, len(block_rarity)) 
+        # for piece_info_index in range(n):
+        #     piece_info = block_rarity[piece_info_index]
+        #     piece_id = piece_info[0]
+        #     start_block = self.pieces[piece_id]
+        #     #print(piece_info[2])
+        #     random.shuffle(piece_info[2])
+        #     for peer in piece_info[2]:
+        #         r = Request(self.id, peer.id, piece_id, start_block)
+        #         requests.append(r)
+
+        # return requests
+
+        for peer in peers:
+            av_set = set(peer.available_pieces)
+            isect = list(av_set.intersection(np_set))
+            random.shuffle(isect)
+            n = min(self.max_requests, len(isect))
+            piece_rarity = pieceRarity(peers, isect)
+            for piece in piece_rarity[:n]:
+                start_block = self.pieces[piece[0]]
+                r = Request(self.id, peer.id, piece[0], start_block)
                 requests.append(r)
         return requests
 
@@ -87,46 +101,37 @@ class BadsStd(Peer):
         number_of_seeds = self.conf.agent_class_names.count("Seed")
         
         n = min(max_upload, len(requests))
-        #
-        # print("HERE")
-        # print(n)
-        # print((requests))
+
         if n == 0:
-            logging.debug("No one wants my pieces!")
             chosen = []
             bws = []
         else:
             chosen = []
-            logging.debug("Still here: uploading to a random peer")
-            # change my internal state for no reason
-            self.dummy_state["cake"] = "pie"
             # !! Choose prioritized request instead
-            topRequesters, notTopRequesters = recipocateUploads(peers, requests, requester_ids, number_of_seeds, n, history)
-            
-            
-            for topRequest in topRequesters:
+            topRequesters, notTopRequesters = recipocateUploads(history, requester_ids)
+            print('TOP', topRequesters, 'NOT', notTopRequesters)
+            for topRequest in topRequesters[:n-1]:
+                notTopRequesters.remove(topRequest[0])
                 chosen.append(Upload(self.id, topRequest[0], int(self.up_bw//max_upload)))
 
-            if len(topRequesters) < 3:
+            if len(topRequesters) < n - 1:
                 for i in range(n - 1 - len(topRequesters)):
-                    randomUnchock = random.choice(notTopRequesters)
-                    notTopRequesters.remove(randomUnchock)
-                    chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//max_upload)))
-            if round % 3 == 0:
-                self.random_peer = random.choice(notTopRequesters)
+                    if notTopRequesters != []:
+                        randomUnchock = random.choice(notTopRequesters)
+                        notTopRequesters.remove(randomUnchock)
+                        chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//max_upload)))
+            if round % 3 == 0 or self.needNewRandom:
+                if notTopRequesters != []:
+                    self.random_peer = random.choice(notTopRequesters)
+                    self.needNewRandom = False
+                else:
+                    self.needNewRandom = True
             
             chosen.append(Upload(self.id, self.random_peer, int(self.up_bw//max_upload)))
-            #print("BENJAMIN: ", chosen)
-        #     else:
-        #         print("BENJAMIN!!")
-        #         #Choose a random request from all requests when we only have one spot
-        #         request = random.choice(requests)
-        #         chosen.append(request)
-        #     # Evenly "split" my upload bandwidth among the one chosen requester
-        #     bws = even_split(self.up_bw, len(chosen))
+      
+        #chosen = chosen[:4]
 
-        # # create actual uploads out of the list of peer ids and bandwidths
-        # uploads = [Upload(self.id, peer_id, bw)
-        #            for (peer_id, bw) in zip(chosen, bws)]
-            
+        #print("BETTINA: ", len(chosen))
+        #print(chosen)    
+        #print(top)
         return chosen
