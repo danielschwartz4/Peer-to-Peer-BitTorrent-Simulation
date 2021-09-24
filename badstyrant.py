@@ -116,26 +116,33 @@ class BadsTyrant(Peer):
                 self.dij[d.from_id][0] = d.blocks
                 self.dij[d.from_id][1] += 1
                 if self.dij[d.from_id][1] >= self.r:
+                    print("BENJAMIN")
+                    print(self.uij[d.from_id])
                     self.uij[d.from_id] *= (1-self.lamb)
+                    print(self.uij[d.from_id])
+
 
             for peer in peers:
                 if peer.id not in uploaders and peer.id in self.history_requesters:
+                    print("DANIEL")
+                    print(peer.id, ": ", self.uij[peer.id])
                     self.uij[peer.id] *= (1+self.alpha)
                     self.dij[peer.id][1] = 0
-            print(self.dij)
+                    print(self.uij[peer.id])
 
         ordered_du = []
         for peer in peers:
             pid = peer.id
-            ordered_du.append([self.dij[pid][0] / self.uij[pid], self.uij[pid], pid])
+            if "Seed" not in pid:
+                ordered_du.append([self.dij[pid][0] / self.uij[pid], self.uij[pid], pid, self.dij[pid][0]])
         ordered_du.sort(reverse=True)
+        print(ordered_du)
         summation = 0
         i = 0
         while summation < self.cap and i < len(ordered_du):
             chosen.append(Upload(self.id, ordered_du[i][2], min(self.cap-summation, ordered_du[i][1])))
             summation += ordered_du[i][1]
             i += 1
-        
 
         return chosen
 
