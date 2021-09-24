@@ -19,9 +19,9 @@ class BadsTyrant(Peer):
         print(("post_init(): %s here!" % self.id))
         self.uij = dict()
         self.dij = dict()
-        self.alpha = 0.05
+        self.alpha = 0.2
         self.r = 3
-        self.lamb = 0.3
+        self.lamb = 0.1
         self.cap = self.up_bw
         print("CAP: ", self.cap)
     
@@ -74,10 +74,10 @@ class BadsTyrant(Peer):
         #         r = Request(self.id, peer.id, piece_id, start_block)
         #         requests.append(r)
         # return requests
-
         for peer in peers:
             av_set = set(peer.available_pieces)
-            isect = av_set.intersection(np_set)
+            isect = list(av_set.intersection(np_set))
+            random.shuffle(isect)
             n = min(self.max_requests, len(isect))
             piece_rarity = pieceRarity(peers, isect)
             for piece in piece_rarity[:n]:

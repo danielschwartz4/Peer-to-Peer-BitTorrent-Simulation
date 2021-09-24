@@ -12,12 +12,15 @@ import logging
 from messages import Upload, Request
 from util import even_split
 from peer import Peer
+from badsutil import *
 
-class BadsPropShare(Peer):
+class BadsStd(Peer):
     def post_init(self):
         print(("post_init(): %s here!" % self.id))
-        self.dummy_state = dict()
-        self.dummy_state["cake"] = "lie"
+        self.ucp = 0.1
+        self.pcp = 1-self.ucp
+        self.random_peer = -1
+        self.needNewRandom = True
     
     def requests(self, peers, history):
         """
@@ -45,29 +48,19 @@ class BadsPropShare(Peer):
         logging.debug(str(history))
 
         requests = []   # We'll put all the things we want here
-        # Symmetry breaking is good...
         random.shuffle(needed_pieces)
         
-        # Sort peers by id.  This is probably not a useful sort, but other 
-        # sorts might be useful
-        peers.sort(key=lambda p: p.id)
-        # request all available pieces from all peers!
-        # (up to self.max_requests from each)
+        random.shuffle(peers)
         for peer in peers:
             av_set = set(peer.available_pieces)
-            isect = av_set.intersection(np_set)
+            isect = list(av_set.intersection(np_set))
+            random.shuffle(isect)
             n = min(self.max_requests, len(isect))
-            # More symmetry breaking -- ask for random pieces.
-            # This would be the place to try fancier piece-requesting strategies
-            # to avoid getting the same thing from multiple peers at a time.
-            for piece_id in random.sample(isect, n):
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
-                start_block = self.pieces[piece_id]
-                r = Request(self.id, peer.id, piece_id, start_block)
+            piece_rarity = pieceRarity(peers, isect)
+            for piece in piece_rarity[:n]:
+                start_block = self.pieces[piece[0]]
+                r = Request(self.id, peer.id, piece[0], start_block)
                 requests.append(r)
-
         return requests
 
     def uploads(self, requests, peers, history):
@@ -80,7 +73,6 @@ class BadsPropShare(Peer):
 
         In each round, this will be called after requests().
         """
-
         round = history.current_round()
         logging.debug("%s again.  It's round %d." % (
             self.id, round))
@@ -89,22 +81,36 @@ class BadsPropShare(Peer):
         # has a list of Download objects for each Download to this peer in
         # the previous round.
 
-        if len(requests) == 0:
-            logging.debug("No one wants my pieces!")
+        max_upload = 4  # max num of peers to upload to at a time
+        requester_ids = list(set([r.requester_id for r in requests]))
+        number_of_seeds = self.conf.agent_class_names.count("Seed")
+        
+        n = min(max_upload, len(requests))
+
+        if n == 0:
             chosen = []
             bws = []
         else:
-            logging.debug("Still here: uploading to a random peer")
-            # change my internal state for no reason
-            self.dummy_state["cake"] = "pie"
+            chosen = []
+            # !! Choose prioritized request instead
+            topRequesters, notTopRequesters = recipocateUploads(history, requester_ids)
+            for topRequest in topRequesters[:n-1]:
+                notTopRequesters.remove(topRequest[0])
+                chosen.append(Upload(self.id, topRequest[0], int(self.up_bw//max_upload)))
 
-            request = random.choice(requests)
-            chosen = [request.requester_id]
-            # Evenly "split" my upload bandwidth among the one chosen requester
-            bws = even_split(self.up_bw, len(chosen))
-
-        # create actual uploads out of the list of peer ids and bandwidths
-        uploads = [Upload(self.id, peer_id, bw)
-                   for (peer_id, bw) in zip(chosen, bws)]
+            if len(topRequesters) < n - 1:
+                for i in range(n - 1 - len(topRequesters)):
+                    if notTopRequesters != []:
+                        randomUnchock = random.choice(notTopRequesters)
+                        notTopRequesters.remove(randomUnchock)
+                        chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//max_upload)))
+            if round % 3 == 0 or self.needNewRandom:
+                if notTopRequesters != []:
+                    self.random_peer = random.choice(notTopRequesters)
+                    self.needNewRandom = False
+                else:
+                    self.needNewRandom = True
             
-        return uploads
+            chosen.append(Upload(self.id, self.random_peer, int(self.up_bw//max_upload)))
+
+        return chosen
