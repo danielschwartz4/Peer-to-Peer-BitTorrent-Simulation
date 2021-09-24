@@ -19,9 +19,9 @@ class BadsTyrant(Peer):
         print(("post_init(): %s here!" % self.id))
         self.uij = dict()
         self.dij = dict()
-        self.alpha = 0.2
+        self.alpha = 0.05
         self.r = 3
-        self.lamb = 0.1
+        self.lamb = 0.3
         self.cap = self.up_bw
         print("CAP: ", self.cap)
     
@@ -80,13 +80,8 @@ class BadsTyrant(Peer):
             isect = av_set.intersection(np_set)
             n = min(self.max_requests, len(isect))
             piece_rarity = pieceRarity(peers, isect)
-            # More symmetry breaking -- ask for random pieces.
-            # This would be the place to try fancier piece-requesting strategies
-            # to avoid getting the same thing from multiple peers at a time.
             for piece in piece_rarity[:n]:
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
+
                 start_block = self.pieces[piece[0]]
                 r = Request(self.id, peer.id, piece[0], start_block)
                 requests.append(r)
@@ -114,7 +109,7 @@ class BadsTyrant(Peer):
             uploaders = set()
             for d in history.downloads[round-1]:
                 uploaders.add(d.from_id)
-                self.dij[d.from_id][0] = d.blocks #/4
+                self.dij[d.from_id][0] = d.blocks / 4
                 self.dij[d.from_id][1] += 1
                 if self.dij[d.from_id][1] >= self.r:
                     self.uij[d.from_id] *= (1-self.lamb)

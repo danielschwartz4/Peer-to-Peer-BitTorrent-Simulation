@@ -44,7 +44,6 @@ def pieceRarity(peers, isect):
 		values.append([key, value[0][0], value[1]])
 		#Value in array values of the form [piece_id, int, [Peers]]
 	values.sort(key = lambda x: x[1])
-	# print("ERIC: ", values)
 	return values
 
 
@@ -57,6 +56,7 @@ def recipocateUploads(history, copyRequester_ids ):
 					peersBW[download.from_id] += download.blocks
 				else:
 					peersBW[download.from_id] = download.blocks 
+	print('PBW',peersBW)
 
 	sortPeersBW = []
 	for key, value in peersBW.items():
