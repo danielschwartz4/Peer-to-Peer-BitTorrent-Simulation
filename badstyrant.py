@@ -23,7 +23,7 @@ class BadsTyrant(Peer):
         self.r = 3
         self.lamb = 0.1
         self.cap = self.up_bw
-        print("CAP: ", self.cap)
+        self.history_requesters = []
     
     def requests(self, peers, history):
         """
@@ -75,23 +75,20 @@ class BadsTyrant(Peer):
         #         requests.append(r)
         # return requests
         random.shuffle(peers)
+        requesters_temp = set()
         for peer in peers:
             av_set = set(peer.available_pieces)
             isect = list(av_set.intersection(np_set))
             random.shuffle(isect)
             n = min(self.max_requests, len(isect))
             piece_rarity = pieceRarity(peers, isect)
-            # More symmetry breaking -- ask for random pieces.
-            # This would be the place to try fancier piece-requesting strategies
-            # to avoid getting the same thing from multiple peers at a time.
             for piece in piece_rarity[:n]:
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
                 start_block = self.pieces[piece[0]]
                 r = Request(self.id, peer.id, piece[0], start_block)
                 requests.append(r)
-                
+                requesters_temp.add(peer.id)
+        random.shuffle(requests)
+        self.history_requesters = list(requesters_temp)
         return requests
 
     def uploads(self, requests, peers, history):
@@ -110,20 +107,19 @@ class BadsTyrant(Peer):
             self.id, round))
         if round == 0:
             for peer in peers:
-                self.uij[peer.id] = 5
-                self.dij[peer.id] = [5, 0]
+                self.uij[peer.id] = self.up_bw/4
+                self.dij[peer.id] = [self.up_bw/4, 0]
         if round > 0:
             uploaders = set()
-            print(history.downloads)
             for d in history.downloads[round-1]:
                 uploaders.add(d.from_id)
-                self.dij[d.from_id][0] = d.blocks #/4
+                self.dij[d.from_id][0] = d.blocks
                 self.dij[d.from_id][1] += 1
                 if self.dij[d.from_id][1] >= self.r:
                     self.uij[d.from_id] *= (1-self.lamb)
 
             for peer in peers:
-                if peer.id not in uploaders:
+                if peer.id not in uploaders and peer.id in self.history_requesters:
                     self.uij[peer.id] *= (1+self.alpha)
                     self.dij[peer.id][1] = 0
 
