@@ -74,7 +74,7 @@ class BadsTyrant(Peer):
         #         r = Request(self.id, peer.id, piece_id, start_block)
         #         requests.append(r)
         # return requests
-
+        random.shuffle(peers)
         for peer in peers:
             av_set = set(peer.available_pieces)
             isect = list(av_set.intersection(np_set))
@@ -91,6 +91,7 @@ class BadsTyrant(Peer):
                 start_block = self.pieces[piece[0]]
                 r = Request(self.id, peer.id, piece[0], start_block)
                 requests.append(r)
+                
         return requests
 
     def uploads(self, requests, peers, history):
