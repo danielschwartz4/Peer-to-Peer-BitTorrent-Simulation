@@ -77,6 +77,7 @@ class BadsStd(Peer):
                 start_block = self.pieces[piece[0]]
                 r = Request(self.id, peer.id, piece[0], start_block)
                 requests.append(r)
+        random.shuffle(requests)
         return requests
 
     def uploads(self, requests, peers, history):

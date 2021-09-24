@@ -55,7 +55,6 @@ def recipocateUploads(history, copyRequester_ids ):
 					peersBW[download.from_id] += download.blocks
 				else:
 					peersBW[download.from_id] = download.blocks 
-	print('PBW',peersBW)
 
 	sortPeersBW = []
 	for key, value in peersBW.items():

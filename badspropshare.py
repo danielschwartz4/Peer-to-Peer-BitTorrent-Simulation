@@ -14,11 +14,11 @@ from util import even_split
 from peer import Peer
 from badsutil import *
 
-class BadsStd(Peer):
+class BadsPropshare(Peer):
     def post_init(self):
-        print(("post_init(): %s here!" % self.id))
         self.ucp = 0.1
         self.pcp = 1-self.ucp
+        self.prev_uploaders = dict()
         self.random_peer = -1
         self.needNewRandom = True
     
@@ -35,17 +35,6 @@ class BadsStd(Peer):
         needed_pieces = list(filter(needed, list(range(len(self.pieces)))))
         np_set = set(needed_pieces)  # sets support fast intersection ops.
 
-
-        logging.debug("%s here: still need pieces %s" % (
-            self.id, needed_pieces))
-
-        logging.debug("%s still here. Here are some peers:" % self.id)
-        for p in peers:
-            logging.debug("id: %s, available pieces: %s" % (p.id, p.available_pieces))
-
-        logging.debug("And look, I have my entire history available too:")
-        logging.debug("look at the AgentHistory class in history.py for details")
-        logging.debug(str(history))
 
         requests = []   # We'll put all the things we want here
         random.shuffle(needed_pieces)
@@ -74,18 +63,31 @@ class BadsStd(Peer):
         In each round, this will be called after requests().
         """
         round = history.current_round()
-        logging.debug("%s again.  It's round %d." % (
-            self.id, round))
-        # One could look at other stuff in the history too here.
-        # For example, history.downloads[round-1] (if round != 0, of course)
-        # has a list of Download objects for each Download to this peer in
-        # the previous round.
 
         max_upload = 4  # max num of peers to upload to at a time
         requester_ids = list(set([r.requester_id for r in requests]))
         number_of_seeds = self.conf.agent_class_names.count("Seed")
         
         n = min(max_upload, len(requests))
+        if round > 0:
+            for d in history.downloads[round-1]:
+                self.prev_uploaders[d.from_id] = [d.blocks, 0]
+            uploaders = set(self.prev_uploaders.keys())
+            isect = list(set(requester_ids).intersection(uploaders))
+            total_upload = 1
+            for i in isect:
+                total_upload += self.prev_uploaders[i][0]
+            for i in self.prev_uploaders.keys():
+                self.prev_uploaders[i][1] = (self.prev_uploaders[i][0] / total_upload) * self.pcp
+            print("HHH", self.prev_uploaders)
+
+        # chosen = 0
+        # for i in requester_ids:
+        #     chosen.append(Upload(self.id, i, prev_uploaders[i]))
+        # return chosen
+
+
+
 
         if n == 0:
             chosen = []
