@@ -13,11 +13,11 @@ from messages import Upload, Request
 from util import even_split
 from peer import Peer
 
-class Dummy(Peer):
+class DummyTest(Peer):
     def post_init(self):
         print(("post_init(): %s here!" % self.id))
         self.dummy_state = dict()
-        
+        self.upload_rate - 0.5
         self.dummy_state["cake"] = "lie"
     
     def requests(self, peers, history):

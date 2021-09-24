@@ -16,8 +16,9 @@ from peer import Peer
 class BadsTyrant(Peer):
     def post_init(self):
         print(("post_init(): %s here!" % self.id))
-        self.dummy_state = dict()
-        self.dummy_state["cake"] = "lie"
+        self.uij = dict()
+        self.dij = dict()
+        self.alpha = 0.2
     
     def requests(self, peers, history):
         """
@@ -67,7 +68,6 @@ class BadsTyrant(Peer):
                 start_block = self.pieces[piece_id]
                 r = Request(self.id, peer.id, piece_id, start_block)
                 requests.append(r)
-
         return requests
 
     def uploads(self, requests, peers, history):
@@ -84,10 +84,19 @@ class BadsTyrant(Peer):
         round = history.current_round()
         logging.debug("%s again.  It's round %d." % (
             self.id, round))
-        # One could look at other stuff in the history too here.
-        # For example, history.downloads[round-1] (if round != 0, of course)
-        # has a list of Download objects for each Download to this peer in
-        # the previous round.
+        if round == 0:
+            for peer in peers:
+                self.uij[peer.id] = 2
+                self.dij[peer.id] = 2
+        if round > 0:
+            uploaders = set()
+            for d in history.downloads[round-1]:
+                uploaders.add(d.from_id)
+                self.dij[d.from_id] = self.uij[d.from_id] / 4
+            for peer in peers:
+                if peer.id not in uploaders:
+                    self.uij[peer.id] = self.uij[peer.id] * (1+self.alpha)
+        print(self.dij)
 
         if len(requests) == 0:
             logging.debug("No one wants my pieces!")
@@ -95,8 +104,6 @@ class BadsTyrant(Peer):
             bws = []
         else:
             logging.debug("Still here: uploading to a random peer")
-            # change my internal state for no reason
-            self.dummy_state["cake"] = "pie"
 
             request = random.choice(requests)
             chosen = [request.requester_id]
