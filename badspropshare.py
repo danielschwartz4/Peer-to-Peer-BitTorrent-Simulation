@@ -69,50 +69,70 @@ class BadsPropshare(Peer):
         number_of_seeds = self.conf.agent_class_names.count("Seed")
         
         n = min(max_upload, len(requests))
+        isect = set()
         if round > 0:
-            for d in history.downloads[round-1]:
+            for d in history.downloads[-1]:
                 self.prev_uploaders[d.from_id] = [d.blocks, 0]
             uploaders = set(self.prev_uploaders.keys())
             isect = list(set(requester_ids).intersection(uploaders))
-            total_upload = 1
-            for i in isect:
-                total_upload += self.prev_uploaders[i][0]
-            for i in self.prev_uploaders.keys():
-                self.prev_uploaders[i][1] = (self.prev_uploaders[i][0] / total_upload) * self.pcp
-            print("HHH", self.prev_uploaders)
 
-        # chosen = 0
-        # for i in requester_ids:
-        #     chosen.append(Upload(self.id, i, prev_uploaders[i]))
-        # return chosen
+            if isect != []:
+                total_blocks = 0
+                for requester_id in isect:
+                    total_blocks += self.prev_uploaders[requester_id][0]
+                for i in self.prev_uploaders.keys():
+                    self.prev_uploaders[i][1] = (self.prev_uploaders[i][0] / total_blocks) * self.pcp * self.up_bw
 
+        chosen = []
+        for requester_id in isect:
+            requester_ids.remove(requester_id)
+            chosen.append(Upload(self.id, requester_id, self.prev_uploaders[requester_id][1]))
 
+        # if len(chosen) < n - 1:
+        #     for i in range(n - 1 - len(chosen)):
+        #     if notTopRequesters != []:
+        #         randomUnchock = random.choice(notTopRequesters)
+        #         notTopRequesters.remove(randomUnchock)
+        #         chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//max_upload)))
 
-
-        if n == 0:
-            chosen = []
-            bws = []
-        else:
-            chosen = []
-            # !! Choose prioritized request instead
-            topRequesters, notTopRequesters = recipocateUploads(history, requester_ids)
-            for topRequest in topRequesters[:n-1]:
-                notTopRequesters.remove(topRequest[0])
-                chosen.append(Upload(self.id, topRequest[0], int(self.up_bw//max_upload)))
-
-            if len(topRequesters) < n - 1:
-                for i in range(n - 1 - len(topRequesters)):
-                    if notTopRequesters != []:
-                        randomUnchock = random.choice(notTopRequesters)
-                        notTopRequesters.remove(randomUnchock)
-                        chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//max_upload)))
-            if round % 3 == 0 or self.needNewRandom:
-                if notTopRequesters != []:
-                    self.random_peer = random.choice(notTopRequesters)
-                    self.needNewRandom = False
-                else:
-                    self.needNewRandom = True
+        if round % 3 == 0 or self.needNewRandom:
+            if requester_ids != []:
+                self.random_peer = random.choice(requester_ids)
+                self.needNewRandom = False
+            else:
+                self.needNewRandom = True
             
-            chosen.append(Upload(self.id, self.random_peer, int(self.up_bw//max_upload)))
-
+        chosen.append(Upload(self.id, self.random_peer, int(self.up_bw*self.ucp)))
+        print(self.up_bw)
+        print(chosen)
         return chosen
+
+
+
+        # if n == 0:
+        #     chosen = []
+        #     bws = []
+        # else:
+        #     chosen = []
+        #     # !! Choose prioritized request instead
+        #     topRequesters, notTopRequesters = recipocateUploads(history, requester_ids)
+        #     for topRequest in topRequesters[:n-1]:
+        #         notTopRequesters.remove(topRequest[0])
+        #         chosen.append(Upload(self.id, topRequest[0], int(self.up_bw//max_upload)))
+
+        #     if len(topRequesters) < n - 1:
+        #         for i in range(n - 1 - len(topRequesters)):
+        #             if notTopRequesters != []:
+        #                 randomUnchock = random.choice(notTopRequesters)
+        #                 notTopRequesters.remove(randomUnchock)
+        #                 chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//max_upload)))
+        #     if round % 3 == 0 or self.needNewRandom:
+        #         if notTopRequesters != []:
+        #             self.random_peer = random.choice(notTopRequesters)
+        #             self.needNewRandom = False
+        #         else:
+        #             self.needNewRandom = True
+            
+        #     chosen.append(Upload(self.id, self.random_peer, int(self.up_bw//max_upload)))
+
+        # return chosen
