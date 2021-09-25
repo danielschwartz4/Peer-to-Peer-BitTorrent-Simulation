@@ -77,7 +77,7 @@ class BadsStd(Peer):
                 start_block = self.pieces[piece[0]]
                 r = Request(self.id, peer.id, piece[0], start_block)
                 requests.append(r)
-        random.shuffle(requests)
+        #random.shuffle(requests)
         return requests
 
     def uploads(self, requests, peers, history):
@@ -100,7 +100,6 @@ class BadsStd(Peer):
 
         max_upload = 4  # max num of peers to upload to at a time
         requester_ids = list(set([r.requester_id for r in requests]))
-        number_of_seeds = self.conf.agent_class_names.count("Seed")
         
         n = min(max_upload, len(requests))
 
