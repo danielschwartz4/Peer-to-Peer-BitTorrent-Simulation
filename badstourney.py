@@ -76,8 +76,8 @@ class BadsTourney(Peer):
 
         In each round, this will be called after requests().
         """
-        delta = .3
-        max_upload = 4  # max num of peers to upload to at a time
+        delta = .2
+        max_upload = 3  # max num of peers to upload to at a time
         requester_ids = list(set([r.requester_id for r in requests]))
         
         n = min(max_upload, len(requests))
@@ -106,15 +106,13 @@ class BadsTourney(Peer):
             if "Seed" not in pid:
                 ordered_du.append([self.dij[pid], pid])
         ordered_du.sort(reverse=True)
-        for i in range(n-1):
-            chosen.append(Upload(self.id, ordered_du[i][1], self.up_bw/n))
+        i = 0
+        upload_count = 0
+        while upload_count < max_upload and len(requester_ids) > i:
+            if ordered_du[i][1] in requester_ids:
+                chosen.append(Upload(self.id, ordered_du[i][1], self.up_bw/n))
+                upload_count += 1
+            i += 1
 
-        
-        # summation = 0
-        # i = 0
-        # while summation < self.cap and i < len(ordered_du):
-        #     chosen.append(Upload(self.id, ordered_du[i][2], min(self.cap-summation, ordered_du[i][1])))
-        #     summation += ordered_du[i][1]
-        #     i += 1
 
         return chosen

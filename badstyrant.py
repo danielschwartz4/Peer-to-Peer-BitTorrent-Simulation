@@ -131,14 +131,13 @@ class BadsTyrant(Peer):
             if "Seed" not in pid:
                 ordered_du.append([self.dij[pid][0] / self.uij[pid], self.uij[pid], pid, self.dij[pid][0]])
         ordered_du.sort(reverse=True)
-        print(ordered_du)
         summation = 0
         i = 0
 
         while summation < self.cap and i < len(ordered_du):
             if ordered_du[i][2] in requester_ids:
                 chosen.append(Upload(self.id, ordered_du[i][2], min(self.cap-summation, ordered_du[i][1])))
-                summation += ordered_du[i][1]
+                summation += min(self.cap-summation, ordered_du[i][1])
             i += 1
 
         return chosen

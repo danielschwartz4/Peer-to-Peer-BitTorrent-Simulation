@@ -72,7 +72,6 @@ class BadsStd(Peer):
             random.shuffle(isect)
             n = min(self.max_requests, len(isect))
             piece_rarity = pieceRarity(peers, isect)
-            # random.shuffle(piece_rarity)
             for piece in piece_rarity[:n]:
                 start_block = self.pieces[piece[0]]
                 r = Request(self.id, peer.id, piece[0], start_block)

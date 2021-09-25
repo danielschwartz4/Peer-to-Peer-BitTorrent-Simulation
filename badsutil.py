@@ -95,10 +95,10 @@ def mostGenerous(peer_ids):
 	pass
 
 
-def getGenerosity(peer_id, history):
-	uploads = history.uploads
-	# prev_uploads = history.peer_history(peer_id).uploads
-	for upload in uploads:
-		print(upload)
+# def getGenerosity(peer_id, history):
+# 	uploads = history.uploads
+# 	# prev_uploads = history.peer_history(peer_id).uploads
+# 	for upload in uploads:
+# 		print(upload)
 	# avg_gen = sum(prev_uploads) / len(prev_uploads)
 	# return avg_gen
