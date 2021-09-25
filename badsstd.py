@@ -12,7 +12,6 @@ import logging
 from messages import Upload, Request
 from util import even_split
 from peer import Peer
-from badsutil import *
 
 class BadsStd(Peer):
     def post_init(self):
@@ -21,6 +20,42 @@ class BadsStd(Peer):
         self.dummy_state["cake"] = "lie"
         self.random_peer = -1
         self.needNewRandom = True
+
+    def pieceRarity(self, peers, isect):
+        # Using Dictionary comprehension
+        d = {}
+        for peer in peers:
+            for piece in isect:
+                if piece in peer.available_pieces:
+                    if piece in d:
+                        d[piece] += 1
+                    else:
+                        d[piece] = 1
+
+        values = []
+        for key, value in d.items():
+            #Value in dict of the form [[int], [Peers]]
+            values.append([key, value])
+            #Value in array values of the form [piece_id, int, [Peers]]
+        values.sort(key = lambda x: x[1])
+        return values
+
+
+    def recipocateUploads(self, history, copyRequester_ids ):
+        peersBW = {}
+        for i in range(1,3):
+            for download in history.downloads[-i]:
+                if download.from_id in copyRequester_ids:
+                    if download.from_id in peersBW:
+                        peersBW[download.from_id] += download.blocks
+                    else:
+                        peersBW[download.from_id] = download.blocks 
+
+        sortPeersBW = []
+        for key, value in peersBW.items():
+            sortPeersBW.append([key, value])
+        sortPeersBW.sort(key = lambda x: x[1], reverse=True)
+        return sortPeersBW, copyRequester_ids
     
     def requests(self, peers, history):
         """
@@ -51,27 +86,14 @@ class BadsStd(Peer):
         # Symmetry breaking is good...
         random.shuffle(needed_pieces)
         
-        #print(peers)
-        # block_rarity = blockRarity(peers, np_set)
-        # n = min(self.max_requests, len(block_rarity)) 
-        # for piece_info_index in range(n):
-        #     piece_info = block_rarity[piece_info_index]
-        #     piece_id = piece_info[0]
-        #     start_block = self.pieces[piece_id]
-        #     #print(piece_info[2])
-        #     random.shuffle(piece_info[2])
-        #     for peer in piece_info[2]:
-        #         r = Request(self.id, peer.id, piece_id, start_block)
-        #         requests.append(r)
-
-        # return requests
+      
         random.shuffle(peers)
         for peer in peers:
             av_set = set(peer.available_pieces)
             isect = list(av_set.intersection(np_set))
             random.shuffle(isect)
             n = min(self.max_requests, len(isect))
-            piece_rarity = pieceRarity(peers, isect)
+            piece_rarity = self.pieceRarity(peers, isect)
             for piece in piece_rarity[:n]:
                 start_block = self.pieces[piece[0]]
                 r = Request(self.id, peer.id, piece[0], start_block)
@@ -108,17 +130,17 @@ class BadsStd(Peer):
         else:
             chosen = []
             # !! Choose prioritized request instead
-            topRequesters, notTopRequesters = recipocateUploads(history, requester_ids)
+            topRequesters, notTopRequesters = self.recipocateUploads(history, requester_ids)
             for topRequest in topRequesters[:n-1]:
                 notTopRequesters.remove(topRequest[0])
-                chosen.append(Upload(self.id, topRequest[0], int(self.up_bw//max_upload)))
+                chosen.append(Upload(self.id, topRequest[0], int(self.up_bw//n)))
 
             if len(topRequesters) < n - 1:
                 for i in range(n - 1 - len(topRequesters)):
                     if notTopRequesters != []:
                         randomUnchock = random.choice(notTopRequesters)
                         notTopRequesters.remove(randomUnchock)
-                        chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//max_upload)))
+                        chosen.append(Upload(self.id, randomUnchock, int(self.up_bw//n)))
             if round % 3 == 0 or self.needNewRandom:
                 if notTopRequesters != []:
                     self.random_peer = random.choice(notTopRequesters)
@@ -126,11 +148,6 @@ class BadsStd(Peer):
                 else:
                     self.needNewRandom = True
             
-            chosen.append(Upload(self.id, self.random_peer, int(self.up_bw//max_upload)))
-      
-        #chosen = chosen[:4]
+            chosen.append(Upload(self.id, self.random_peer, int(self.up_bw//n)))
 
-        #print("BETTINA: ", len(chosen))
-        #print(chosen)    
-        #print(top)
         return chosen
