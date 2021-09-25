@@ -19,6 +19,7 @@ class BadsTourney(Peer):
         print(("post_init(): %s here!" % self.id))
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
+        self.dij = dict()
     
     def requests(self, peers, history):
         """
@@ -75,31 +76,45 @@ class BadsTourney(Peer):
 
         In each round, this will be called after requests().
         """
+        delta = .3
+        max_upload = 4  # max num of peers to upload to at a time
+        requester_ids = list(set([r.requester_id for r in requests]))
+        
+        n = min(max_upload, len(requests))
 
+        chosen = []
         round = history.current_round()
         logging.debug("%s again.  It's round %d." % (
             self.id, round))
-        # One could look at other stuff in the history too here.
-        # For example, history.downloads[round-1] (if round != 0, of course)
-        # has a list of Download objects for each Download to this peer in
-        # the previous round.
+        if round == 0:
+            for peer in peers:
+                self.dij[peer.id] = float(self.up_bw/4)
+        if round > 0:
+            uploaders = set()
+            for d in history.downloads[-1]:
+                uploaders.add(d.from_id)
+                oldDIJ = self.dij[d.from_id]
+                self.dij[d.from_id] = float(d.blocks) + float(oldDIJ)*delta
 
-        if len(requests) == 0:
-            logging.debug("No one wants my pieces!")
-            chosen = []
-            bws = []
-        else:
-            logging.debug("Still here: uploading to a random peer")
-            # change my internal state for no reason
-            self.dummy_state["cake"] = "pie"
+            for peer in peers:
+                if peer.id not in uploaders and peer.id in requester_ids:
+                    self.dij[peer.id] = self.dij[peer.id]*delta
 
-            request = random.choice(requests)
-            chosen = [request.requester_id]
-            # Evenly "split" my upload bandwidth among the one chosen requester
-            bws = even_split(self.up_bw, len(chosen))
+        ordered_du = []
+        for peer in peers:
+            pid = peer.id
+            if "Seed" not in pid:
+                ordered_du.append([self.dij[pid], pid])
+        ordered_du.sort(reverse=True)
+        for i in range(n-1):
+            chosen.append(Upload(self.id, ordered_du[i][1], self.up_bw/n))
 
-        # create actual uploads out of the list of peer ids and bandwidths
-        uploads = [Upload(self.id, peer_id, bw)
-                   for (peer_id, bw) in zip(chosen, bws)]
-            
-        return uploads
+        
+        # summation = 0
+        # i = 0
+        # while summation < self.cap and i < len(ordered_du):
+        #     chosen.append(Upload(self.id, ordered_du[i][2], min(self.cap-summation, ordered_du[i][1])))
+        #     summation += ordered_du[i][1]
+        #     i += 1
+
+        return chosen

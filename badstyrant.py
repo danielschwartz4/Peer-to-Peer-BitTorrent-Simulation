@@ -101,6 +101,7 @@ class BadsTyrant(Peer):
 
         In each round, this will be called after requests().
         """
+        requester_ids = list(set([r.requester_id for r in requests]))
         chosen = []
         round = history.current_round()
         logging.debug("%s again.  It's round %d." % (
@@ -116,19 +117,13 @@ class BadsTyrant(Peer):
                 self.dij[d.from_id][0] = d.blocks
                 self.dij[d.from_id][1] += 1
                 if self.dij[d.from_id][1] >= self.r:
-                    print("BENJAMIN")
-                    print(self.uij[d.from_id])
                     self.uij[d.from_id] *= (1-self.lamb)
-                    print(self.uij[d.from_id])
 
 
             for peer in peers:
                 if peer.id not in uploaders and peer.id in self.history_requesters:
-                    print("DANIEL")
-                    print(peer.id, ": ", self.uij[peer.id])
                     self.uij[peer.id] *= (1+self.alpha)
                     self.dij[peer.id][1] = 0
-                    print(self.uij[peer.id])
 
         ordered_du = []
         for peer in peers:
@@ -139,9 +134,11 @@ class BadsTyrant(Peer):
         print(ordered_du)
         summation = 0
         i = 0
+
         while summation < self.cap and i < len(ordered_du):
-            chosen.append(Upload(self.id, ordered_du[i][2], min(self.cap-summation, ordered_du[i][1])))
-            summation += ordered_du[i][1]
+            if ordered_du[i][2] in requester_ids:
+                chosen.append(Upload(self.id, ordered_du[i][2], min(self.cap-summation, ordered_du[i][1])))
+                summation += ordered_du[i][1]
             i += 1
 
         return chosen
